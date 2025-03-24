@@ -1,4 +1,4 @@
-# Kotlin GUI Audio Demo
+# Kotlin GUI Global Key {ress Demo
 
 This is a demo showing how a Kotlin / Swing GUI app can detect and handle **global keypress events** (those not targeted at a specific UI control).
 
