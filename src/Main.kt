@@ -104,6 +104,7 @@ class MainWindow(val app: App) : JFrame(), ActionListener, KeyListener {
         val baseFont = Font(Font.SANS_SERIF, Font.PLAIN, 24)
         val smallFont = Font(Font.SANS_SERIF, Font.PLAIN, 22)
 
+        // Make this main window listen for key events
         this.addKeyListener(this)
 
         val messageLabel = JLabel("<html>Click the buttons or press the up and down arrows...")
