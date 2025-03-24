@@ -1,15 +1,19 @@
 /**
  * ===============================================================
- * Kotlin GUI Starter
+ * Kotlin GUI Global Keypress Demo
  * ===============================================================
  *
- * This is a starter project for a simple Kotlin GUI application.
- * The Java Swing library is used, plus the FlatLAF look-and-feel
- * for a reasonably modern look.
+ * This is a demo showing how a Kotlin / Swing GUI app can detect
+ * and handle global keypress events (those not targeted at a
+ * specific UI control).
  *
- * The app is structured to provide a simple view / model setup
- * with the App class storing application data (the 'model'), and
- * the MainWindow class providing the 'view'.
+ * The trick is to always give the main window the 'focus'. This
+ * means that any key press events are fed to the window, rather
+ * than any other UI elements.
+ *
+ * To do do this, we stop other controls from being focussed by
+ * setting 'isFocusable' to false when we add them, and in the
+ * updateView(), we always 'requestFocus()' for the main window.
  */
 
 import com.formdev.flatlaf.FlatDarkLaf
@@ -34,16 +38,23 @@ fun main() {
  * stored, plus any application logic functions
  */
 class App() {
-    // Constants defining any key values
-    val MAX_CLICKS = 10
+    // Constants
+    val MAX_VOL = 10
+    val MIN_VOL = 0
 
     // Data fields
-    var clicks = 0
+    var volume = MAX_VOL / 2
 
     // Application logic functions
-    fun updateClickCount() {
-        clicks++
-        if (clicks > MAX_CLICKS) clicks = MAX_CLICKS
+
+    fun increaseVolume() {
+        volume++
+        if (volume > MAX_VOL) volume = MAX_VOL
+    }
+
+    fun decreaseVolume() {
+        volume--
+        if (volume < MIN_VOL) volume = MIN_VOL
     }
 }
 
@@ -53,11 +64,12 @@ class App() {
  * Defines the UI and responds to events
  * The app model should be passwd as an argument
  */
-class MainWindow(val app: App) : JFrame(), ActionListener {
+class MainWindow(val app: App) : JFrame(), ActionListener, KeyListener {
 
     // Fields to hold the UI elements
     private lateinit var infoLabel: JLabel
-    private lateinit var helloButton: JButton
+    private lateinit var upButton: JButton
+    private lateinit var downButton: JButton
 
     /**
      * Configure the UI and display it
@@ -69,15 +81,15 @@ class MainWindow(val app: App) : JFrame(), ActionListener {
         setLocationRelativeTo(null)     // Centre the window
         isVisible = true                // Make it visible
 
-        updateView()                    // Initialise view with model data
+        updateView()                    // Initialise the view with any app data
     }
 
     /**
      * Configure the main window
      */
     private fun configureWindow() {
-        title = "Kotlin Swing GUI Demo"
-        contentPane.preferredSize = Dimension(600, 350)
+        title = "Kotlin Swing GUI Key Demo"
+        contentPane.preferredSize = Dimension(375, 250)
         defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
         isResizable = false
         layout = null
@@ -89,19 +101,36 @@ class MainWindow(val app: App) : JFrame(), ActionListener {
      * Populate the UI with UI controls
      */
     private fun addControls() {
-        val baseFont = Font(Font.SANS_SERIF, Font.PLAIN, 36)
+        val baseFont = Font(Font.SANS_SERIF, Font.PLAIN, 24)
+        val smallFont = Font(Font.SANS_SERIF, Font.PLAIN, 22)
 
-        infoLabel = JLabel("INFO HERE")
-        infoLabel.horizontalAlignment = SwingConstants.CENTER
-        infoLabel.bounds = Rectangle(50, 50, 500, 100)
+        this.addKeyListener(this)
+
+        val messageLabel = JLabel("<html>Click the buttons or press the up and down arrows...")
+        messageLabel.horizontalAlignment = SwingConstants.LEFT
+        messageLabel.bounds = Rectangle(25, 25, 325, 50)
+        messageLabel.font = smallFont
+        add(messageLabel)
+
+        infoLabel = JLabel("VOLUME INFO")
+        infoLabel.horizontalAlignment = SwingConstants.LEFT
+        infoLabel.bounds = Rectangle(25, 100, 325, 50)
         infoLabel.font = baseFont
         add(infoLabel)
 
-        helloButton = JButton("Click Me!")
-        helloButton.bounds = Rectangle(50,200,500,100)
-        helloButton.font = baseFont
-        helloButton.addActionListener(this)     // Handle any clicks
-        add(helloButton)
+        downButton = JButton("Down")
+        downButton.bounds = Rectangle(25, 175, 150, 50)
+        downButton.font = baseFont
+        downButton.addActionListener(this)     // Handle any clicks
+        downButton.isFocusable = false            // Prevent from capturing key events
+        add(downButton)
+
+        upButton = JButton("Up")
+        upButton.bounds = Rectangle(200, 175, 150, 50)
+        upButton.font = baseFont
+        upButton.addActionListener(this)     // Handle any clicks
+        upButton.isFocusable = false            // Prevent from capturing key events
+        add(upButton)
     }
 
 
@@ -110,13 +139,9 @@ class MainWindow(val app: App) : JFrame(), ActionListener {
      * of the application model
      */
     fun updateView() {
-        if (app.clicks == app.MAX_CLICKS) {
-            infoLabel.text = "Max clicks reached!"
-            helloButton.isEnabled = false
-        }
-        else {
-            infoLabel.text = "You clicked ${app.clicks} times"
-        }
+        infoLabel.text = "Volume: " + "▉".repeat(app.volume)
+
+        this.requestFocus()     // Set focus to main window
     }
 
     /**
@@ -125,12 +150,45 @@ class MainWindow(val app: App) : JFrame(), ActionListener {
      * then refreshing the UI view
      */
     override fun actionPerformed(e: ActionEvent?) {
+        // Update app data model based on button clicks
         when (e?.source) {
-            helloButton -> {
-                app.updateClickCount()
-                updateView()
-            }
+            upButton -> app.increaseVolume()
+            downButton -> app.decreaseVolume()
         }
+
+        // And ensure the UI view matched the updated app model data
+        updateView()
+    }
+
+    /**
+     * Key pressed fires when a key is pushed down
+     * This is usually the place you'll want to have your code
+     */
+    override fun keyPressed(e: KeyEvent?) {
+        println("Down: ${e?.keyCode}")
+
+        // Check which key was pressed and act upon it
+        when (e?.keyCode) {
+            KeyEvent.VK_UP    -> app.increaseVolume()
+            KeyEvent.VK_DOWN  -> app.decreaseVolume()
+        }
+
+        // Ensure view matched the updated app model data
+        updateView()
+    }
+
+    /**
+     * Key released fires when a key is lifted up
+     */
+    override fun keyReleased(e: KeyEvent?) {
+        // Only use if you want to act on key release
+    }
+
+    /**
+     * Key typed is generally for letter/number key strokes
+     */
+    override fun keyTyped(e: KeyEvent?) {
+        // We're not generally insterested in this
     }
 
 }
